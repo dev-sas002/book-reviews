@@ -27,6 +27,13 @@ RSpec.describe 'the API error contract' do
     expect(response_hash).to eq(errors: ['Resource not found'])
   end
 
+  it 'answers a malformed JSON body with 400 in the same envelope' do
+    post api_users_path, params: '{"first_name": "Ada",', headers: { 'CONTENT_TYPE' => 'application/json' }
+
+    expect(response).to have_http_status(:bad_request)
+    expect(response_hash).to eq(errors: ['Request body is not valid JSON'])
+  end
+
   it 'uses the same envelope for validation failures' do
     post api_users_path, params: { first_name: 'Ada' }
 
