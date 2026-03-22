@@ -1,73 +1,44 @@
 # syntax=docker/dockerfile:1
 
-# The application is pinned to the Ruby in .ruby-version, and the Gemfile reads
-# that file, so the image tag and the repository cannot drift apart silently.
-ARG RUBY_VERSION=2.7.2
-
-# Matches `BUNDLED WITH` in Gemfile.lock. Ruby 2.7.2 ships Bundler 2.1.4, which
-# warns on every single command that the lockfile was written by a newer
-# Bundler; pinning it here keeps container output free of that noise.
-ARG BUNDLER_VERSION=2.2.9
+# Keep in step with .ruby-version; the Gemfile reads that file, so a mismatch
+# fails `bundle install` instead of drifting silently.
+ARG RUBY_VERSION=3.4.12
 
 ##############################################################################
-# Stage 1 — build the gem bundle (compilers and headers live only here)
+# Stage 1: build the gem bundle (compilers and headers live only here)
 ##############################################################################
 FROM ruby:${RUBY_VERSION}-slim AS gems
 
-# Debian buster is archived, so the default mirrors no longer serve a Release
-# file. Point apt at archive.debian.org instead of pinning a newer Ruby the
-# application has never been tested on.
-RUN set -eux; \
-    sed -i \
-      -e 's|http://deb.debian.org/debian|http://archive.debian.org/debian|g' \
-      -e 's|http://security.debian.org/debian-security|http://archive.debian.org/debian-security|g' \
-      -e '/buster-updates/d' /etc/apt/sources.list; \
-    apt-get -o Acquire::Check-Valid-Until=false update; \
-    apt-get install -y --no-install-recommends \
-      build-essential \
-      libpq-dev \
-      pkg-config \
-      patch \
-      git; \
+RUN apt-get update -qq && \
+    apt-get install -y --no-install-recommends build-essential libpq-dev libyaml-dev pkg-config git && \
     rm -rf /var/lib/apt/lists/*
 
-ARG BUNDLER_VERSION
 ENV BUNDLE_PATH=/usr/local/bundle \
     BUNDLE_JOBS=4 \
     BUNDLE_RETRY=3
-
-RUN gem install bundler -v "${BUNDLER_VERSION}" --no-document
 
 WORKDIR /app
 
 COPY Gemfile Gemfile.lock .ruby-version ./
 RUN bundle install && \
-    rm -rf "${BUNDLE_PATH}"/cache "${BUNDLE_PATH}"/ruby/*/cache
+    rm -rf "${BUNDLE_PATH}"/cache "${BUNDLE_PATH}"/ruby/*/cache "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git
 
 ##############################################################################
-# Stage 2 — runtime: the interpreter, the built gems, the app, nothing else
+# Stage 2: runtime, with the interpreter, the built gems and the app only
 ##############################################################################
 FROM ruby:${RUBY_VERSION}-slim AS runtime
 
-RUN set -eux; \
-    sed -i \
-      -e 's|http://deb.debian.org/debian|http://archive.debian.org/debian|g' \
-      -e 's|http://security.debian.org/debian-security|http://archive.debian.org/debian-security|g' \
-      -e '/buster-updates/d' /etc/apt/sources.list; \
-    apt-get -o Acquire::Check-Valid-Until=false update; \
-    apt-get install -y --no-install-recommends libpq5 postgresql-client; \
+RUN apt-get update -qq && \
+    apt-get install -y --no-install-recommends libpq5 libyaml-0-2 postgresql-client && \
     rm -rf /var/lib/apt/lists/*
 
 ENV BUNDLE_PATH=/usr/local/bundle \
     RAILS_ENV=production \
-    RAILS_LOG_TO_STDOUT=1 \
     PORT=3000 \
     LANG=C.UTF-8
 
 WORKDIR /app
 
-# Brings the pinned Bundler across with the gems; GEM_HOME is /usr/local/bundle
-# in the official Ruby image, so this is the whole gem environment.
 COPY --from=gems /usr/local/bundle /usr/local/bundle
 COPY . .
 

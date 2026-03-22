@@ -113,7 +113,7 @@ RSpec.describe '/api/books' do
       it 'returns 422 unprocessable entity' do
         post api_books_path, params: params
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
     end
   end
@@ -171,7 +171,7 @@ RSpec.describe '/api/books' do
 
         put api_book_path(book), params: { publish_date: 'not-a-date' }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response_hash).to eq(errors: ['Publish date is not a valid date'])
         expect(book.reload.publish_date).to eq(Date.new(1989, 11, 10))
       end

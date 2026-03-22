@@ -29,9 +29,9 @@ module API
       # author, which is not what the URL says.
       @reviewable =
         if params[:book_id].present?
-          Book.find(params[:book_id])
+          Book.find(params.expect(:book_id))
         elsif params[:author_id].present?
-          Author.find(params[:author_id])
+          Author.find(params.expect(:author_id))
         end
 
       raise ActiveRecord::RecordNotFound unless @reviewable

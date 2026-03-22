@@ -28,7 +28,7 @@ class ApplicationController < ActionController::API
     render json: { errors: ['Request body is not valid JSON'] }, status: :bad_request
   end
 
-  def render_errors(messages, status: :unprocessable_entity)
+  def render_errors(messages, status: :unprocessable_content)
     render json: { errors: Array(messages) }, status: status
   end
 end

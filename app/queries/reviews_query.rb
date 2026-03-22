@@ -16,8 +16,8 @@ class ReviewsQuery
   DEFAULT_DIRECTION = 'asc'.freeze
 
   # `filters` is positional rather than a keyword argument on purpose: with a
-  # keyword in the signature, Ruby 2.7 would swallow `new(book, rating: 4)`
-  # into `filters` instead of `params`.
+  # keyword in the signature, Ruby would read `new(book, rating: 4)` as an
+  # unknown keyword instead of as `params`.
   def initialize(reviewable, params = {}, filters = ReviewFilters.registry)
     @reviewable = reviewable
     @params = normalize(params)

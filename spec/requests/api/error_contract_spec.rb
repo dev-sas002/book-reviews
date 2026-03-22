@@ -37,7 +37,7 @@ RSpec.describe 'the API error contract' do
   it 'uses the same envelope for validation failures' do
     post api_users_path, params: { first_name: 'Ada' }
 
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(response_hash[:errors]).to be_an(Array)
   end
 end

@@ -3,8 +3,8 @@ plugins:
   - rubocop-rspec
 
 AllCops:
-  TargetRubyVersion: 2.7
-  TargetRailsVersion: 6.1
+  TargetRubyVersion: 3.4
+  TargetRailsVersion: 8.1
   NewCops: enable
   SuggestExtensions: false
   Exclude:
@@ -26,8 +26,8 @@ Style/StringLiterals:
 Style/Documentation:
   Enabled: false
 
-# Frozen string literals are a Ruby 3 default and this app targets 2.7; adding
-# the magic comment to every file is noise for no measurable benefit here.
+# Ruby 3.4 already warns on mutation of a literal string (chilled strings), so
+# the magic comment in every file would be noise for no measurable benefit.
 Style/FrozenStringLiteralComment:
   Enabled: false
 
@@ -74,6 +74,7 @@ RSpec/DescribeClass:
   Exclude:
     - 'spec/requests/**/*'
     - 'spec/serializers/**/*'
+    - 'spec/eager_load_spec.rb'
 
 # Deliberate: the unique-index rescue path is easiest to prove by forcing the
 # exception, and there is no seam worth inventing for it.

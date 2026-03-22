@@ -45,7 +45,7 @@ module API
     end
 
     def find_resource
-      resource_scope.find(params[:id])
+      resource_scope.find(params.expect(:id))
     end
 
     def resource_class

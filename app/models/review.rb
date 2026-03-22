@@ -5,7 +5,7 @@ class Review < ApplicationRecord
   PROFANITY_REGEX = Regexp.new("\\b(?:#{PROFANITY_WORDS.join('|')})\\b", Regexp::IGNORECASE).freeze
 
   DESCRIPTION_MAX_LENGTH = 300
-  RATING_RANGE = (1..5).freeze
+  RATING_RANGE = (1..5)
 
   belongs_to :reviewable, polymorphic: true
   belongs_to :user

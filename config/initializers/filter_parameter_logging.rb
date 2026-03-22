@@ -1,6 +1,4 @@
-# Be sure to restart your server when you modify this file.
-
-# Configure sensitive parameters which will be filtered from the log file.
-Rails.application.config.filter_parameters += [
-  :passw, :secret, :token, :_key, :crypt, :salt, :certificate, :otp, :ssn
+# Partial matches: :passw also filters :password_confirmation, and so on.
+Rails.application.config.filter_parameters += %i[
+  passw email secret token _key crypt salt certificate otp ssn cvv cvc
 ]

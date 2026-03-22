@@ -158,7 +158,7 @@ RSpec.describe '/api/books and authors reviews' do
 
         post api_book_reviews_path(book.id), params: { user_id: user.id, description: 'No rating' }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response_hash[:errors].join(' ')).to include('Rating')
       end
     end
@@ -170,7 +170,7 @@ RSpec.describe '/api/books and authors reviews' do
 
         post api_book_reviews_path(book.id), params: { user_id: user.id, rating: '4.7' }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response_hash[:errors]).to include('Rating must be an integer')
         expect(book.reviews).to be_empty
       end
@@ -182,7 +182,7 @@ RSpec.describe '/api/books and authors reviews' do
 
         post api_book_reviews_path(book.id), params: { user_id: -1, rating: 3 }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response_hash[:errors]).to include('User must exist')
       end
     end
@@ -195,7 +195,7 @@ RSpec.describe '/api/books and authors reviews' do
         post api_book_reviews_path(book.id),
              params: { user_id: user.id, rating: 3, description: 'a' * 301 }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response_hash[:errors].join(' ')).to include('is too long')
       end
     end
@@ -273,7 +273,7 @@ RSpec.describe '/api/books and authors reviews' do
 
         post api_book_reviews_path(book.id), params: { rating: 3, user_id: user.id }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response_hash[:errors].join(' ')).to include("can't post multiple reviews")
       end
     end

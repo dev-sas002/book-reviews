@@ -10,10 +10,9 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2026_09_23_090100) do
-
+ActiveRecord::Schema[8.1].define(version: 2026_09_23_090100) do
   # These are extensions that must be enabled in order to support this database
-  enable_extension "plpgsql"
+  enable_extension "pg_catalog.plpgsql"
 
   create_table "authors", force: :cascade do |t|
     t.string "first_name"
@@ -21,8 +20,8 @@ ActiveRecord::Schema.define(version: 2026_09_23_090100) do
     t.string "website"
     t.string "genres", default: [], array: true
     t.text "description"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "books", force: :cascade do |t|
@@ -31,8 +30,8 @@ ActiveRecord::Schema.define(version: 2026_09_23_090100) do
     t.date "publish_date"
     t.decimal "rating"
     t.bigint "author_id"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.integer "ratings_count", default: 0, null: false
     t.integer "ratings_sum", default: 0, null: false
     t.index ["author_id"], name: "index_books_on_author_id"
@@ -44,8 +43,8 @@ ActiveRecord::Schema.define(version: 2026_09_23_090100) do
     t.string "reviewable_type", null: false
     t.bigint "reviewable_id", null: false
     t.bigint "user_id", null: false
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["reviewable_type", "reviewable_id", "created_at", "id"], name: "index_reviews_on_reviewable_and_created_at"
     t.index ["reviewable_type", "reviewable_id", "rating", "id"], name: "index_reviews_on_reviewable_and_rating"
     t.index ["user_id", "reviewable_id", "reviewable_type"], name: "index_reviews_on_user_id_and_reviewable_id_and_reviewable_type", unique: true
@@ -55,8 +54,8 @@ ActiveRecord::Schema.define(version: 2026_09_23_090100) do
   create_table "users", force: :cascade do |t|
     t.string "first_name", null: false
     t.string "last_name", null: false
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   add_foreign_key "books", "authors"
