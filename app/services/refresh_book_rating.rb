@@ -48,7 +48,7 @@ class RefreshBookRating
       scope = Book.all
       scope = scope.where(id: id_for(book_or_id)) unless book_or_id.nil?
 
-      ActiveRecord::Base.connection.update(recalculate_sql(scope))
+      ActiveRecord::Base.with_connection { |connection| connection.update(recalculate_sql(scope)) }
     end
 
     private

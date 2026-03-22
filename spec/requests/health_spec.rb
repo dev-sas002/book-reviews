@@ -9,9 +9,9 @@ RSpec.describe 'GET /health' do
   end
 
   it 'reports service unavailable when the database is not reachable' do
-    connection = ActiveRecord::Base.connection
-    allow(connection).to receive(:execute).and_call_original
-    allow(connection).to receive(:execute).with('SELECT 1').and_raise(
+    connection = ActiveRecord::Base.lease_connection
+    allow(connection).to receive(:select_value).and_call_original
+    allow(connection).to receive(:select_value).with('SELECT 1').and_raise(
       ActiveRecord::StatementInvalid.new('connection is closed')
     )
 
