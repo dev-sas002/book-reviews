@@ -8,7 +8,7 @@
 
 services:
   db:
-    image: postgres:13-alpine
+    image: postgres:17-alpine
     environment:
       POSTGRES_USER: he_better_reads
       POSTGRES_PASSWORD: he_better_reads
