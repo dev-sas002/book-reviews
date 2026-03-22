@@ -165,6 +165,16 @@ RSpec.describe '/api/books' do
           }
         )
       end
+
+      it 'keeps the stored publish_date when the new one does not parse' do
+        book.update!(publish_date: '1989-11-10')
+
+        put api_book_path(book), params: { publish_date: 'not-a-date' }
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response_hash).to eq(errors: ['Publish date is not a valid date'])
+        expect(book.reload.publish_date).to eq(Date.new(1989, 11, 10))
+      end
     end
   end
 end
