@@ -16,13 +16,12 @@ if [ -n "${DATABASE_URL:-}" ]; then
   done
 fi
 
-# db:prepare creates and loads the schema on an empty database and migrates an
-# existing one. The seeds are idempotent, so running them every boot is safe
-# and means the API is never empty on first request.
+# db:prepare creates, loads and seeds an empty database and migrates an
+# existing one, so the API has data behind it on the first request without
+# reseeding on every boot.
 if [ "${SKIP_DB_PREPARE:-}" != "1" ]; then
   echo "==> preparing the database"
   bundle exec rails db:prepare
-  bundle exec rails db:seed
 fi
 
 rm -f tmp/pids/server.pid
