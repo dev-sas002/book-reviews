@@ -1,0 +1,34 @@
+# Bundler
+/.bundle
+/vendor/bundle
+
+# Logs, temp files, uploads and caches Rails writes at runtime
+/log/*
+/tmp/*
+/storage/*
+/public/system
+.byebug_history
+spec/examples.txt
+/coverage
+
+# Keys, credentials and local environment files. The app reads its secrets
+# from the environment; an encrypted credentials file without its key is noise.
+/config/master.key
+/config/credentials/*.key
+/config/credentials.yml.enc
+*.key
+.env
+.env.*
+!.env.example
+
+# Local Python virtualenv left in the working copy, unrelated to the app
+project_venv/
+node_modules/
+
+# Not part of this repository
+.github/
+
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store
