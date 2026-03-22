@@ -39,6 +39,20 @@ RSpec.describe Review, type: :model do
       end
     end
 
+    it 'rejects a fractional rating instead of truncating it' do
+      review = build(:review, reviewable: create(:book), user: create(:user), rating: '4.7')
+
+      review.valid?
+
+      expect(review.errors[:rating]).to include('must be an integer')
+    end
+
+    it 'rejects a rating with trailing garbage' do
+      review = build(:review, reviewable: create(:book), user: create(:user), rating: '5abc')
+
+      expect(review).not_to be_valid
+    end
+
     it 'allows a nil description' do
       review = build(:review, reviewable: create(:book), user: create(:user), rating: 3, description: nil)
 

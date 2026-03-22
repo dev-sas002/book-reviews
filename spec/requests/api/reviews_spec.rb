@@ -163,6 +163,19 @@ RSpec.describe '/api/books and authors reviews' do
       end
     end
 
+    context 'when the rating is not a whole number' do
+      it 'rejects it rather than storing a truncated rating' do
+        book = create(:book)
+        user = create(:user)
+
+        post api_book_reviews_path(book.id), params: { user_id: user.id, rating: '4.7' }
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response_hash[:errors]).to include('Rating must be an integer')
+        expect(book.reviews).to be_empty
+      end
+    end
+
     context 'when the user does not exist' do
       it 'returns a descriptive error' do
         book = create(:book)

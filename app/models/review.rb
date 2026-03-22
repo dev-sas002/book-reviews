@@ -10,7 +10,10 @@ class Review < ApplicationRecord
   belongs_to :reviewable, polymorphic: true
   belongs_to :user
 
+  # `rating` is an integer column, so Active Record would quietly cast "4.7"
+  # to 4 and "5abc" to 5. The numericality check reads the value as sent.
   validates :rating, presence: true,
+                     numericality: { only_integer: true, allow_nil: true },
                      inclusion: { in: RATING_RANGE, message: 'rating should be in range of 1..5' }
   validates :reviewable_id, uniqueness: { scope: %i[reviewable_type user_id],
                                           message: "can't post multiple reviews" }
