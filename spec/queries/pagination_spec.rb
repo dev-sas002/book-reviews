@@ -37,6 +37,13 @@ RSpec.describe Pagination do
     expect(paginate(per_page: 10_000).per_page).to eq(described_class::MAX_PER_PAGE)
   end
 
+  it 'caps page so the offset cannot overflow a bigint' do
+    pagination = paginate(page: '99999999999999999999', per_page: 100)
+
+    expect(pagination.page).to eq(described_class::MAX_PAGE)
+    expect(pagination.records.to_a).to eq([])
+  end
+
   it 'floors page and per_page at 1' do
     pagination = paginate(page: -3, per_page: 0)
 

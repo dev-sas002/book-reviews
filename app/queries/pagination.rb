@@ -6,12 +6,16 @@
 class Pagination
   DEFAULT_PER_PAGE = 25
   MAX_PER_PAGE = 100
+  # Postgres takes OFFSET as a bigint, so an unbounded page number overflows it
+  # and the request dies with a 500. A million pages of the largest page size
+  # is far beyond any real collection here and keeps the offset in range.
+  MAX_PAGE = 1_000_000
 
   attr_reader :page, :per_page
 
   def initialize(scope, page: nil, per_page: nil)
     @scope = scope
-    @page = coerce(page, default: 1, min: 1)
+    @page = coerce(page, default: 1, min: 1, max: MAX_PAGE)
     @per_page = coerce(per_page, default: DEFAULT_PER_PAGE, min: 1, max: MAX_PER_PAGE)
   end
 

@@ -29,6 +29,16 @@ RSpec.describe 'pagination' do
 
       expect(response.headers['X-Per-Page']).to eq(Pagination::MAX_PER_PAGE.to_s)
     end
+
+    it 'answers an absurd page number with an empty page instead of a 500' do
+      create(:book)
+
+      get api_books_path, params: { page: '99999999999999999999' }
+
+      expect(response).to have_http_status(:ok)
+      expect(response_hash).to eq([])
+      expect(response.headers['X-Page']).to eq(Pagination::MAX_PAGE.to_s)
+    end
   end
 
   describe 'the reviews endpoint' do
