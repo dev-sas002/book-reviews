@@ -106,9 +106,3 @@ Naming/VariableNumber:
 RSpec/IndexedLet:
   Exclude:
     - 'spec/**/*'
-
-# The one `puts` is in the generated pending-migration guard, which runs before
-# RSpec has anywhere else to report to.
-RSpec/Output:
-  Exclude:
-    - 'spec/rails_helper.rb'
