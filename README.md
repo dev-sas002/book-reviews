@@ -1,6 +1,6 @@
 # Book Reviews
 
-A Rails 6.1 `config.api_only` JSON API for books, authors and the reviews people
+A Rails 8.1 `config.api_only` JSON API (Ruby 3.4) for books, authors and the reviews people
 write about them, built to a take-home brief: one review per user per book, a
 required 1-5 rating, an optional description, and an endpoint returning a book's
 reviews with filtering and sorting. The three stretch goals — reviews of authors,
@@ -15,7 +15,7 @@ which the brief asked for and which heads
 |---|---|
 | A user can review a book | `POST /api/books/:book_id/reviews` → `API::ReviewsController#create` → `CreateReview` |
 | Only one review per user per book | A uniqueness validation on `Review` **and** a unique index on `(user_id, reviewable_id, reviewable_type)`. The index is the real guard: `CreateReview` rescues `RecordNotUnique` and returns the same 422 the validation would have. |
-| A rating is required, 1-5 | `Review` validates presence and `inclusion: 1..5`; `reviews.rating` is `NOT NULL` |
+| A rating is required, 1-5 | `Review` validates presence, a whole number (`4.7` is a 422, not a stored 4) and `inclusion: 1..5`; `reviews.rating` is `NOT NULL` |
 | A description is optional | `allow_nil`, `limit: 300` in the schema, and a `before_validation` storing a blank or whitespace-only description as `NULL` |
 | An endpoint returning a book's reviews | `GET /api/books/:book_id/reviews` → `ReviewsQuery` |
 | …filterable | `?description_only=true`, `?rating=1..5` — `ReviewFilters::DescriptionOnly`, `ReviewFilters::Rating` |
@@ -24,31 +24,37 @@ which the brief asked for and which heads
 | *Stretch:* profanity filter | `Review#fictional_profanity`, over a deliberately fictional five-word list |
 | *Stretch:* average rating per book | `books.rating`, maintained in one `UPDATE` per write by `RefreshBookRating` — see [below](#how-the-average-rating-stays-o1) |
 
-`spec/` holds 150 examples over that, including the parts easiest to get wrong —
+`spec/` holds 162 examples over that, run in random order, including the parts easiest to get wrong —
 `spec/models/review_spec.rb` asserts every blocklisted word is rejected on its own,
 and that an author review leaves the rating counters alone.
 
 ## Running it
 
 ```sh
-docker compose up --build                     # API on http://localhost:8150
-docker compose --profile test run --rm test   # rspec, throwaway test database
-docker compose down -v                        # including the pgdata volume
+docker compose up --build                             # API on http://localhost:8150
+docker compose --profile test run --rm --build test   # rspec, throwaway test database
+docker compose --profile test down -v                 # including the pgdata volume
 ```
 
-The first command starts Postgres, creates and migrates the database, seeds
-3 authors, 6 books, 5 users and 16 reviews, and serves the API — nothing else is
-needed. `bin/docker-entrypoint` waits for Postgres and runs `db:prepare` and
-`db:seed` before Puma starts, and the seeds are idempotent so that is safe on every
-boot. `db` is published on 8151.
+The first command starts Postgres 17, creates the database, loads the schema,
+seeds 3 authors, 6 books, 5 users and 16 reviews, and serves the API — nothing else
+is needed. `bin/docker-entrypoint` waits for Postgres and runs `db:prepare`, which
+seeds only a database it has just created and migrates an existing one, so a
+restart keeps whatever you wrote. `db` is published on 8151. The `--build` on the
+test run matters: the `test` service sits behind a profile, so a plain
+`docker compose up --build` never rebuilds its image. A `pgdata` volume left over
+from an older Postgres major will not start; `down -v` clears it.
 
-Without Docker: Ruby 2.7.2 (`.ruby-version`) and a local Postgres —
+Without Docker: Ruby 3.4.12 (`.ruby-version`) and a local Postgres —
 `config/database.yml` connects as the current OS user over the socket — then
 `bundle install`, `bin/rails db:setup`, `bin/rails s`. Nothing needs configuring in
 development or test; in a container it is `DATABASE_URL`, `RAILS_ENV` (the image
 defaults to `production`), `RAILS_MAX_THREADS` (sizes both the Puma and Active
 Record pools) and `SECRET_KEY_BASE`, which the entrypoint generates ephemerally
 when unset because Rails will not boot in production without one.
+[`.env.example`](.env.example) lists them for running the image outside Compose
+(`docker run --env-file .env ...`). There is no `credentials.yml.enc`: nothing in the
+app reads Rails credentials.
 
 ## The data model
 
@@ -111,7 +117,9 @@ Every parameter on that URL is untrusted and none of it reaches SQL as text.
 is simply not found and the default `id` ordering applies. A `?rating=` that is
 non-numeric or outside 1-5 is ignored rather than rejected — a filter is a
 refinement, not a command. `?page=-3&per_page=100000` clamps to page 1 and 100 per
-page (`Pagination::MAX_PER_PAGE`), and `Pagination#total` counts the filtered
+page (`Pagination::MAX_PER_PAGE`), and a page number past `Pagination::MAX_PAGE`
+(a million) clamps to it, because Postgres takes `OFFSET` as a bigint and a
+twenty-digit page would otherwise be a 500. `Pagination#total` counts the filtered
 scope with `includes` and `order` stripped, so the total belongs to the filter
 rather than the page.
 
@@ -200,8 +208,14 @@ Creating a review takes `user_id` (required, must exist), `rating` (required, 1-
 and `description` (optional, max 300), and succeeds with
 `201 {"message": "success"}` — the brief's response, kept as-is. Every non-2xx
 under `/api` has one shape, `{"errors": ["…"]}`, from one place in
-`ApplicationController`: `400` for a missing parameter, `404` for
-`{"errors": ["Resource not found"]}`, `422` for a rejected validation. A client
+`ApplicationController`: `400` for a missing parameter or a body that is not valid
+JSON, `404` for
+`{"errors": ["Resource not found"]}`, `422` for a rejected validation — including
+a `publish_date` that does not parse, which a date column would otherwise turn into
+`null` and silently erase. The malformed-JSON case needed one design decision:
+Rails' `ParamsWrapper` parses the body before `rescue_from` is in scope, and no
+controller reads the wrapped copy, so `config/initializers/wrap_parameters.rb` turns
+it off. A client
 needs one branch rather than one per status code, and
 `spec/requests/api/error_contract_spec.rb` holds it to that. `/health` is the
 documented exception, being a probe and not a resource (also why it sits outside
@@ -211,24 +225,26 @@ Postgres is unreachable.
 ## Tests, linter and captured output
 
 ```sh
-bundle exec rspec                 # or: docker compose --profile test run --rm test
+bundle exec rspec                 # or: docker compose --profile test run --rm --build test
 bundle exec rubocop               # .rubocop.yml, with rubocop-rails and rubocop-rspec
 bin/rails ratings:recalculate     # rebuild the rating counters from the reviews
 ```
 
-Examples run in transactions, and `Gemfile.lock` records `arm64-darwin`,
-`x86_64-darwin-19`, `x86_64-linux` and `aarch64-linux`, so Bundler needs no added
-platform on Apple Silicon or in the container — but Ruby 2.7.2 is old enough that a
-host gem set can drift, so Compose is the reproducible way to run the suite.
+Examples run in transactions and in random order (re-run a failure with
+`--seed <n>`), and `spec/eager_load_spec.rb` loads the whole app once, since the
+test environment otherwise loads lazily and a misnamed constant would first fail in
+production. `Gemfile.lock` records the macOS and Linux (glibc and musl) platforms,
+so Bundler needs no added platform on Apple Silicon or in the container.
 
 There is no user interface to screenshot.
-[`docs/captured-output.md`](docs/captured-output.md) is the substitute: seventeen
+[`docs/captured-output.md`](docs/captured-output.md) is the substitute: twenty-one
 real request/response pairs captured against the seeded Compose stack — paging
 headers, filter and sort combinations, the average moving inside a single write, the
-duplicate, out-of-range and profanity rejections, the 404 for an unknown book,
-`?page=-3&per_page=100000` clamped, and `?sort_by=id;DROP TABLE reviews` falling
-back to `id` ordering with the table intact — plus the boot log and the recorded
-`rspec` (150 examples, 0 failures) and `rubocop` runs.
+duplicate, out-of-range, fractional and profanity rejections, an unparseable
+`publish_date` and a truncated JSON body, the 404 for an unknown book, hostile and
+absurd `?page` values clamped, and `?sort_by=id;DROP TABLE reviews` falling back to
+`id` ordering with the table intact — plus the boot log and the recorded `rspec`
+(162 examples, 0 failures) and `rubocop` runs.
 
 ## What this deliberately does not do
 
@@ -245,6 +261,8 @@ back to `id` ordering with the table intact — plus the boot log and the record
   corrupt it. Author reviews have no average at all, because only `books` has a
   rating column — which is what the brief described.
 * **No caching, no background jobs, no AI, nothing beyond the brief.** The only
-  endpoint outside it is `GET /health`. Ruby 2.7.2 and Rails 6.1 are out of upstream
-  support and kept anyway: the repo is a record of the exercise as submitted, and an
-  upgrade would make the diff about the upgrade.
+  endpoint outside it is `GET /health`.
+
+## License
+
+[MIT](LICENSE).

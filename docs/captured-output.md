@@ -1,28 +1,25 @@
 # Captured output
 
 Every block on this page is real output from the stack that
-`docker compose up --build` starts, captured against the seed data in
-`db/seeds.rb`. This API has no user interface, so there are no screenshots:
-these transcripts are the equivalent.
+`docker compose up --build` starts, captured against the seed
+data in `db/seeds.rb` (Ruby 3.4.12, Rails 8.1, Puma 8, Postgres 17). This API
+has no user interface, so there are no screenshots: these transcripts are the
+equivalent.
 
-Responses are piped through `jq` for readability; only the interesting
-response headers are shown.
+Responses are piped through `jq` for readability, and only the paging headers
+are shown. The requests run in the order listed, so the review created part way
+down is visible in the later responses.
 
 ## Booting the stack
 
 ```console
 $ docker compose up --build
- Container book-reviews-db-1 Created 
- Container book-reviews-api-1 Created 
- Container book-reviews-db-1 Started 
- Container book-reviews-db-1 Healthy 
- Container book-reviews-api-1 Started 
 api-1  | ==> waiting for the database
 api-1  | ==> preparing the database
-api-1  | (schema load and migration output elided)
 api-1  | Seeded 3 authors, 6 books, 5 users and 16 reviews.
 api-1  | Puma starting in single mode...
-api-1  | * Puma version: 5.3.2 (ruby 2.7.2-p137) ("Sweetnighter")
+api-1  | * Puma version: 8.0.2 ("Into the Arena")
+api-1  | * Ruby version: ruby 3.4.12 (2026-10-23 revision 366f5fdc00) +PRISM [aarch64-linux]
 api-1  | *  Min threads: 5
 api-1  | *  Max threads: 5
 api-1  | *  Environment: production
@@ -31,9 +28,9 @@ api-1  | * Listening on http://0.0.0.0:3000
 api-1  | Use Ctrl-C to stop
 ```
 
-The entrypoint waits for Postgres, runs `db:prepare` and `db:seed`, and only
-then starts Puma, so the first request already has data behind it. The seeds
-are idempotent, so this is safe on every boot.
+The entrypoint waits for Postgres and runs `db:prepare`, which creates, loads
+and seeds an empty database (and only migrates an existing one), before Puma
+starts. The first request already has data behind it.
 
 ## Requests and responses
 
@@ -54,10 +51,10 @@ HTTP/1.1 200 OK
 ```console
 $ curl -i 'http://localhost:8150/api/books?per_page=3'
 HTTP/1.1 200 OK
-X-Page: 1
-X-Per-Page: 3
-X-Total-Count: 6
-X-Total-Pages: 2
+x-page: 1
+x-per-page: 3
+x-total-count: 6
+x-total-pages: 2
 
 [
   {
@@ -68,8 +65,8 @@ X-Total-Pages: 2
     "rating": 4.67,
     "ratings_count": 3,
     "author_id": 1,
-    "created_at": "2026-09-23T12:03:02.629Z",
-    "updated_at": "2026-09-23T12:03:02.629Z"
+    "created_at": "2026-11-07T23:15:26.476Z",
+    "updated_at": "2026-11-07T23:15:26.476Z"
   },
   {
     "id": 2,
@@ -79,8 +76,8 @@ X-Total-Pages: 2
     "rating": 4.0,
     "ratings_count": 2,
     "author_id": 1,
-    "created_at": "2026-09-23T12:03:02.632Z",
-    "updated_at": "2026-09-23T12:03:02.632Z"
+    "created_at": "2026-11-07T23:15:26.491Z",
+    "updated_at": "2026-11-07T23:15:26.491Z"
   },
   {
     "id": 3,
@@ -90,8 +87,8 @@ X-Total-Pages: 2
     "rating": 4.33,
     "ratings_count": 3,
     "author_id": 2,
-    "created_at": "2026-09-23T12:03:02.634Z",
-    "updated_at": "2026-09-23T12:03:02.634Z"
+    "created_at": "2026-11-07T23:15:26.495Z",
+    "updated_at": "2026-11-07T23:15:26.495Z"
   }
 ]
 ```
@@ -100,8 +97,6 @@ X-Total-Pages: 2
 
 ```console
 $ curl http://localhost:8150/api/books/1
-HTTP/1.1 200 OK
-
 {
   "id": 1,
   "title": "A Wizard of Earthsea",
@@ -110,8 +105,8 @@ HTTP/1.1 200 OK
   "rating": 4.67,
   "ratings_count": 3,
   "author_id": 1,
-  "created_at": "2026-09-23T12:03:02.629Z",
-  "updated_at": "2026-09-23T12:03:02.629Z"
+  "created_at": "2026-11-07T23:15:26.476Z",
+  "updated_at": "2026-11-07T23:15:26.476Z"
 }
 ```
 
@@ -120,10 +115,10 @@ HTTP/1.1 200 OK
 ```console
 $ curl -i 'http://localhost:8150/api/books/1/reviews?sort_by=rating&order=desc'
 HTTP/1.1 200 OK
-X-Page: 1
-X-Per-Page: 25
-X-Total-Count: 3
-X-Total-Pages: 1
+x-page: 1
+x-per-page: 25
+x-total-count: 3
+x-total-pages: 1
 
 {
   "reviews": [
@@ -139,8 +134,8 @@ X-Total-Pages: 1
         "first_name": "Ada",
         "last_name": "Lovelace"
       },
-      "created_at": "2026-09-23T12:03:02.666Z",
-      "updated_at": "2026-09-23T12:03:02.666Z"
+      "created_at": "2026-11-07T23:15:26.599Z",
+      "updated_at": "2026-11-07T23:15:26.599Z"
     },
     {
       "id": 3,
@@ -154,8 +149,8 @@ X-Total-Pages: 1
         "first_name": "Alan",
         "last_name": "Turing"
       },
-      "created_at": "2026-09-23T12:03:02.673Z",
-      "updated_at": "2026-09-23T12:03:02.673Z"
+      "created_at": "2026-11-07T23:15:26.628Z",
+      "updated_at": "2026-11-07T23:15:26.628Z"
     },
     {
       "id": 2,
@@ -169,8 +164,8 @@ X-Total-Pages: 1
         "first_name": "Grace",
         "last_name": "Hopper"
       },
-      "created_at": "2026-09-23T12:03:02.671Z",
-      "updated_at": "2026-09-23T12:03:02.671Z"
+      "created_at": "2026-11-07T23:15:26.624Z",
+      "updated_at": "2026-11-07T23:15:26.624Z"
     }
   ],
   "meta": {
@@ -187,10 +182,10 @@ X-Total-Pages: 1
 ```console
 $ curl -i 'http://localhost:8150/api/books/3/reviews?description_only=true&rating=4'
 HTTP/1.1 200 OK
-X-Page: 1
-X-Per-Page: 25
-X-Total-Count: 1
-X-Total-Pages: 1
+x-page: 1
+x-per-page: 25
+x-total-count: 1
+x-total-pages: 1
 
 {
   "reviews": [
@@ -206,8 +201,8 @@ X-Total-Pages: 1
         "first_name": "Alan",
         "last_name": "Turing"
       },
-      "created_at": "2026-09-23T12:03:02.687Z",
-      "updated_at": "2026-09-23T12:03:02.687Z"
+      "created_at": "2026-11-07T23:15:26.655Z",
+      "updated_at": "2026-11-07T23:15:26.655Z"
     }
   ],
   "meta": {
@@ -224,10 +219,10 @@ X-Total-Pages: 1
 ```console
 $ curl -i 'http://localhost:8150/api/books/1/reviews?page=2&per_page=2'
 HTTP/1.1 200 OK
-X-Page: 2
-X-Per-Page: 2
-X-Total-Count: 3
-X-Total-Pages: 2
+x-page: 2
+x-per-page: 2
+x-total-count: 3
+x-total-pages: 2
 
 {
   "reviews": [
@@ -243,8 +238,8 @@ X-Total-Pages: 2
         "first_name": "Alan",
         "last_name": "Turing"
       },
-      "created_at": "2026-09-23T12:03:02.673Z",
-      "updated_at": "2026-09-23T12:03:02.673Z"
+      "created_at": "2026-11-07T23:15:26.628Z",
+      "updated_at": "2026-11-07T23:15:26.628Z"
     }
   ],
   "meta": {
@@ -259,12 +254,12 @@ X-Total-Pages: 2
 ### Reviews of an author (stretch goal)
 
 ```console
-$ curl -i 'http://localhost:8150/api/authors/1/reviews'
+$ curl -i http://localhost:8150/api/authors/1/reviews
 HTTP/1.1 200 OK
-X-Page: 1
-X-Per-Page: 25
-X-Total-Count: 1
-X-Total-Pages: 1
+x-page: 1
+x-per-page: 25
+x-total-count: 1
+x-total-pages: 1
 
 {
   "reviews": [
@@ -280,8 +275,8 @@ X-Total-Pages: 1
         "first_name": "Ada",
         "last_name": "Lovelace"
       },
-      "created_at": "2026-09-23T12:03:02.702Z",
-      "updated_at": "2026-09-23T12:03:02.702Z"
+      "created_at": "2026-11-07T23:15:26.680Z",
+      "updated_at": "2026-11-07T23:15:26.680Z"
     }
   ],
   "meta": {
@@ -297,8 +292,6 @@ X-Total-Pages: 1
 
 ```console
 $ curl http://localhost:8150/api/books/4
-HTTP/1.1 200 OK
-
 {
   "id": 4,
   "title": "Small Gods",
@@ -307,8 +300,8 @@ HTTP/1.1 200 OK
   "rating": 4.0,
   "ratings_count": 1,
   "author_id": 2,
-  "created_at": "2026-09-23T12:03:02.635Z",
-  "updated_at": "2026-09-23T12:03:02.635Z"
+  "created_at": "2026-11-07T23:15:26.498Z",
+  "updated_at": "2026-11-07T23:15:26.498Z"
 }
 ```
 
@@ -323,12 +316,10 @@ HTTP/1.1 201 Created
 }
 ```
 
-### The same book afterwards — the average was recomputed on the write
+### The same book afterwards: the average was updated by the write
 
 ```console
 $ curl http://localhost:8150/api/books/4
-HTTP/1.1 200 OK
-
 {
   "id": 4,
   "title": "Small Gods",
@@ -337,8 +328,8 @@ HTTP/1.1 200 OK
   "rating": 3.0,
   "ratings_count": 2,
   "author_id": 2,
-  "created_at": "2026-09-23T12:03:02.635Z",
-  "updated_at": "2026-09-23T12:03:02.635Z"
+  "created_at": "2026-11-07T23:15:26.498Z",
+  "updated_at": "2026-11-07T23:15:26.498Z"
 }
 ```
 
@@ -346,7 +337,7 @@ HTTP/1.1 200 OK
 
 ```console
 $ curl -i -X POST http://localhost:8150/api/books/4/reviews -H 'Content-Type: application/json' -d '{"user_id":2,"rating":5}'
-HTTP/1.1 422 Unprocessable Entity
+HTTP/1.1 422 Unprocessable Content
 
 {
   "errors": [
@@ -359,7 +350,7 @@ HTTP/1.1 422 Unprocessable Entity
 
 ```console
 $ curl -i -X POST http://localhost:8150/api/books/5/reviews -H 'Content-Type: application/json' -d '{"user_id":1,"rating":9}'
-HTTP/1.1 422 Unprocessable Entity
+HTTP/1.1 422 Unprocessable Content
 
 {
   "errors": [
@@ -368,11 +359,24 @@ HTTP/1.1 422 Unprocessable Entity
 }
 ```
 
+### A fractional rating is rejected, not truncated
+
+```console
+$ curl -i -X POST http://localhost:8150/api/books/5/reviews -H 'Content-Type: application/json' -d '{"user_id":1,"rating":4.5}'
+HTTP/1.1 422 Unprocessable Content
+
+{
+  "errors": [
+    "Rating must be an integer"
+  ]
+}
+```
+
 ### The profanity filter
 
 ```console
 $ curl -i -X POST http://localhost:8150/api/books/5/reviews -H 'Content-Type: application/json' -d '{"user_id":1,"rating":3,"description":"What a load of gorram nonsense."}'
-HTTP/1.1 422 Unprocessable Entity
+HTTP/1.1 422 Unprocessable Content
 
 {
   "errors": [
@@ -381,7 +385,7 @@ HTTP/1.1 422 Unprocessable Entity
 }
 ```
 
-### A client-supplied `rating` on a book is ignored
+### A client-supplied rating on a book is ignored
 
 ```console
 $ curl -i -X PATCH http://localhost:8150/api/books/1 -H 'Content-Type: application/json' -d '{"rating":5,"description":"A young mage learns his true name, and what it costs."}'
@@ -395,15 +399,41 @@ HTTP/1.1 200 OK
   "rating": 4.67,
   "ratings_count": 3,
   "author_id": 1,
-  "created_at": "2026-09-23T12:03:02.629Z",
-  "updated_at": "2026-09-23T12:03:02.629Z"
+  "created_at": "2026-11-07T23:15:26.476Z",
+  "updated_at": "2026-11-07T23:15:26.476Z"
+}
+```
+
+### A publish_date that does not parse is rejected
+
+```console
+$ curl -i -X PATCH http://localhost:8150/api/books/2 -H 'Content-Type: application/json' -d '{"publish_date":"soon"}'
+HTTP/1.1 422 Unprocessable Content
+
+{
+  "errors": [
+    "Publish date is not a valid date"
+  ]
+}
+```
+
+### A malformed JSON body gets the same error envelope
+
+```console
+$ curl -i -X POST http://localhost:8150/api/users -H 'Content-Type: application/json' -d '{"first_name":"Ada",'
+HTTP/1.1 400 Bad Request
+
+{
+  "errors": [
+    "Request body is not valid JSON"
+  ]
 }
 ```
 
 ### An unknown book is a 404, not an empty list
 
 ```console
-$ curl -i 'http://localhost:8150/api/books/999999/reviews'
+$ curl -i http://localhost:8150/api/books/999999/reviews
 HTTP/1.1 404 Not Found
 
 {
@@ -418,10 +448,10 @@ HTTP/1.1 404 Not Found
 ```console
 $ curl -i 'http://localhost:8150/api/books?page=-3&per_page=100000'
 HTTP/1.1 200 OK
-X-Page: 1
-X-Per-Page: 100
-X-Total-Count: 6
-X-Total-Pages: 1
+x-page: 1
+x-per-page: 100
+x-total-count: 6
+x-total-pages: 1
 
 [
   {
@@ -432,8 +462,8 @@ X-Total-Pages: 1
     "rating": 4.67,
     "ratings_count": 3,
     "author_id": 1,
-    "created_at": "2026-09-23T12:03:02.629Z",
-    "updated_at": "2026-09-23T12:03:02.629Z"
+    "created_at": "2026-11-07T23:15:26.476Z",
+    "updated_at": "2026-11-07T23:15:26.476Z"
   },
   {
     "id": 2,
@@ -443,8 +473,8 @@ X-Total-Pages: 1
     "rating": 4.0,
     "ratings_count": 2,
     "author_id": 1,
-    "created_at": "2026-09-23T12:03:02.632Z",
-    "updated_at": "2026-09-23T12:03:02.632Z"
+    "created_at": "2026-11-07T23:15:26.491Z",
+    "updated_at": "2026-11-07T23:15:26.491Z"
   },
   {
     "id": 3,
@@ -454,8 +484,8 @@ X-Total-Pages: 1
     "rating": 4.33,
     "ratings_count": 3,
     "author_id": 2,
-    "created_at": "2026-09-23T12:03:02.634Z",
-    "updated_at": "2026-09-23T12:03:02.634Z"
+    "created_at": "2026-11-07T23:15:26.495Z",
+    "updated_at": "2026-11-07T23:15:26.495Z"
   },
   {
     "id": 4,
@@ -465,8 +495,8 @@ X-Total-Pages: 1
     "rating": 3.0,
     "ratings_count": 2,
     "author_id": 2,
-    "created_at": "2026-09-23T12:03:02.635Z",
-    "updated_at": "2026-09-23T12:03:02.635Z"
+    "created_at": "2026-11-07T23:15:26.498Z",
+    "updated_at": "2026-11-07T23:15:26.498Z"
   },
   {
     "id": 5,
@@ -476,8 +506,8 @@ X-Total-Pages: 1
     "rating": 5.0,
     "ratings_count": 2,
     "author_id": 3,
-    "created_at": "2026-09-23T12:03:02.637Z",
-    "updated_at": "2026-09-23T12:03:02.637Z"
+    "created_at": "2026-11-07T23:15:26.506Z",
+    "updated_at": "2026-11-07T23:15:26.506Z"
   },
   {
     "id": 6,
@@ -487,21 +517,34 @@ X-Total-Pages: 1
     "rating": 3.5,
     "ratings_count": 2,
     "author_id": 3,
-    "created_at": "2026-09-23T12:03:02.639Z",
-    "updated_at": "2026-09-23T12:03:02.639Z"
+    "created_at": "2026-11-07T23:15:26.514Z",
+    "updated_at": "2026-11-07T23:15:26.514Z"
   }
 ]
+```
+
+### An absurd page number is an empty page, not a 500
+
+```console
+$ curl -i 'http://localhost:8150/api/books?page=99999999999999999999'
+HTTP/1.1 200 OK
+x-page: 1000000
+x-per-page: 25
+x-total-count: 6
+x-total-pages: 1
+
+[]
 ```
 
 ### An unknown (or injected) sort column falls back to the default ordering
 
 ```console
-$ curl -i 'http://localhost:8150/api/books/1/reviews?sort_by=id;DROP+TABLE+reviews'
+$ curl -i 'http://localhost:8150/api/books/1/reviews?sort_by=id;DROP+TABLE+reviews&per_page=3'
 HTTP/1.1 200 OK
-X-Page: 1
-X-Per-Page: 25
-X-Total-Count: 3
-X-Total-Pages: 1
+x-page: 1
+x-per-page: 3
+x-total-count: 3
+x-total-pages: 1
 
 {
   "reviews": [
@@ -517,8 +560,8 @@ X-Total-Pages: 1
         "first_name": "Ada",
         "last_name": "Lovelace"
       },
-      "created_at": "2026-09-23T12:03:02.666Z",
-      "updated_at": "2026-09-23T12:03:02.666Z"
+      "created_at": "2026-11-07T23:15:26.599Z",
+      "updated_at": "2026-11-07T23:15:26.599Z"
     },
     {
       "id": 2,
@@ -532,8 +575,8 @@ X-Total-Pages: 1
         "first_name": "Grace",
         "last_name": "Hopper"
       },
-      "created_at": "2026-09-23T12:03:02.671Z",
-      "updated_at": "2026-09-23T12:03:02.671Z"
+      "created_at": "2026-11-07T23:15:26.624Z",
+      "updated_at": "2026-11-07T23:15:26.624Z"
     },
     {
       "id": 3,
@@ -547,13 +590,13 @@ X-Total-Pages: 1
         "first_name": "Alan",
         "last_name": "Turing"
       },
-      "created_at": "2026-09-23T12:03:02.673Z",
-      "updated_at": "2026-09-23T12:03:02.673Z"
+      "created_at": "2026-11-07T23:15:26.628Z",
+      "updated_at": "2026-11-07T23:15:26.628Z"
     }
   ],
   "meta": {
     "page": 1,
-    "per_page": 25,
+    "per_page": 3,
     "total": 3,
     "total_pages": 1
   }
@@ -563,20 +606,22 @@ X-Total-Pages: 1
 ## The test suite
 
 ```console
-$ docker compose --profile test run --rm test
-......................................................................................................................................................
+$ docker compose --profile test run --rm --build test
+Randomized with seed 54229
 
-Finished in 2.57 seconds (files took 0.70938 seconds to load)
-150 examples, 0 failures
+..................................................................................................................................................................
 
+Finished in 2.09 seconds (files took 0.52899 seconds to load)
+162 examples, 0 failures
+
+Randomized with seed 54229
 ```
 
 ## The linter
 
 ```console
 $ docker compose run --rm --no-deps api bundle exec rubocop
-Inspecting 66 files
-..................................................................
-
-66 files inspected, no offenses detected
+Inspecting 67 files
+...................................................................
+67 files inspected, no offenses detected
 ```
