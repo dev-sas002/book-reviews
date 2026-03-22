@@ -28,7 +28,8 @@ class Review < ApplicationRecord
   # a console session, a cascading delete — keeps them correct. The policy
   # itself lives in RefreshBookRating; these are thin hooks.
   after_create :increment_rating_counters
-  after_update :adjust_rating_counters, if: :saved_change_to_rating?
+  after_update :adjust_rating_counters, if: :saved_change_to_rating?, unless: :moved_reviewable?
+  after_update :move_rating_counters, if: :moved_reviewable?
   after_destroy :decrement_rating_counters
 
   scope :descriptive_only, -> { where.not(description: [nil, '']) }
@@ -65,6 +66,20 @@ class Review < ApplicationRecord
 
     before, after = saved_change_to_rating
     RefreshBookRating.apply_delta(reviewable_id, count_delta: 0, sum_delta: after.to_i - before.to_i)
+  end
+
+  def moved_reviewable?
+    saved_change_to_reviewable_id? || saved_change_to_reviewable_type?
+  end
+
+  # Reassigning a review takes it, at its old rating, out of the previous
+  # book's counters and adds it, at its new rating, to the current book's.
+  def move_rating_counters
+    if reviewable_type_before_last_save == 'Book'
+      RefreshBookRating.apply_delta(reviewable_id_before_last_save,
+                                    count_delta: -1, sum_delta: -rating_before_last_save.to_i)
+    end
+    increment_rating_counters
   end
 
   def decrement_rating_counters

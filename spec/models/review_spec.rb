@@ -267,6 +267,27 @@ RSpec.describe Review, type: :model do
       expect(book.reload.ratings_sum).to eq(4)
     end
 
+    it 'moves the rating between books when a review is reassigned' do
+      from = create(:book)
+      to = create(:book)
+      review = create(:review, reviewable: from, user: create(:user), rating: 2)
+
+      review.update!(reviewable: to, rating: 5)
+
+      expect(from.reload.attributes.values_at('ratings_count', 'ratings_sum', 'rating')).to eq([0, 0, nil])
+      expect(to.reload.attributes.values_at('ratings_count', 'ratings_sum', 'rating')).to eq([1, 5, 5])
+    end
+
+    it 'takes the rating off the book when a review is reassigned to an author' do
+      book = create(:book)
+      review = create(:review, reviewable: book, user: create(:user), rating: 4)
+
+      review.update!(reviewable: create(:author))
+
+      expect(book.reload.ratings_count).to eq(0)
+      expect(book.rating).to be_nil
+    end
+
     it 'removes a destroyed review from the average' do
       book = create(:book)
       kept = create(:review, reviewable: book, user: create(:user), rating: 2)
