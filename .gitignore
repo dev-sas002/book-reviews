@@ -8,7 +8,6 @@
 /storage/*
 /public/system
 .byebug_history
-spec/examples.txt
 /coverage
 
 # Keys, credentials and local environment files. The app reads its secrets
