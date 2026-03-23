@@ -1,0 +1,113 @@
+plugins:
+  - rubocop-rails
+  - rubocop-rspec
+
+AllCops:
+  TargetRubyVersion: 2.7
+  TargetRailsVersion: 6.1
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - 'bin/**/*'
+    - 'db/schema.rb'
+    - 'config/boot.rb'
+    - 'config/environments/*.rb'
+    - 'config/initializers/*.rb'
+    - 'config/puma.rb'
+    - 'vendor/**/*'
+    - 'tmp/**/*'
+    - 'log/**/*'
+    - 'project_venv/**/*'
+
+# The codebase uses single quotes unless interpolation or escaping is involved.
+Style/StringLiterals:
+  EnforcedStyle: single_quotes
+
+Style/Documentation:
+  Enabled: false
+
+# Frozen string literals are a Ruby 3 default and this app targets 2.7; adding
+# the magic comment to every file is noise for no measurable benefit here.
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+Layout/LineLength:
+  Max: 110
+
+Metrics/BlockLength:
+  Exclude:
+    - 'spec/**/*'
+    - 'db/seeds.rb'
+    - 'config/routes.rb'
+
+Metrics/MethodLength:
+  Max: 20
+
+Metrics/AbcSize:
+  Max: 20
+  # A serializer's `as_json` is a flat list of attributes. Counting its branches
+  # measures how many fields the resource has, which is not complexity.
+  Exclude:
+    - 'app/serializers/**/*'
+
+# Seeds are a script, not an object graph.
+Metrics/ModuleLength:
+  Exclude:
+    - 'db/seeds.rb'
+
+Rails/Output:
+  Exclude:
+    - 'db/seeds.rb'
+    - 'lib/tasks/**/*'
+
+RSpec/ExampleLength:
+  Enabled: false
+
+RSpec/MultipleExpectations:
+  Max: 5
+
+RSpec/NestedGroups:
+  Max: 4
+
+# Request specs describe an endpoint, not a class.
+RSpec/DescribeClass:
+  Exclude:
+    - 'spec/requests/**/*'
+    - 'spec/serializers/**/*'
+
+# Deliberate: the unique-index rescue path is easiest to prove by forcing the
+# exception, and there is no seam worth inventing for it.
+RSpec/AnyInstance:
+  Enabled: false
+
+# `update_all` in RefreshBookRating is the point of the object: the counters are
+# maintained in one UPDATE precisely so that the write path does not load,
+# validate and save every affected row. The specs use `update_column` to plant
+# the timestamps an ordering test needs without tripping `touch`.
+Rails/SkipsModelValidations:
+  Exclude:
+    - 'app/services/refresh_book_rating.rb'
+    - 'spec/**/*'
+
+# There is no i18n in this API and no locale files. The validation messages are
+# part of the documented error contract in the README; moving them into
+# config/locales would hide the contract without translating anything.
+Rails/I18nLocaleTexts:
+  Enabled: false
+
+# Ordering and pagination specs set up rows whose only distinguishing feature is
+# their position, and `review_1 … review_3` says that better than three invented
+# names would.
+Naming/VariableNumber:
+  Exclude:
+    - 'spec/**/*'
+
+RSpec/IndexedLet:
+  Exclude:
+    - 'spec/**/*'
+
+# The one `puts` is in the generated pending-migration guard, which runs before
+# RSpec has anywhere else to report to.
+RSpec/Output:
+  Exclude:
+    - 'spec/rails_helper.rb'
