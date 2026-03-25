@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Rails refuses to boot in production without a secret_key_base, and this
+# repository has no master key checked in (nor should it). Generate an
+# ephemeral one for local containers; a real deployment supplies its own.
+if [ -z "${SECRET_KEY_BASE:-}" ]; then
+  SECRET_KEY_BASE="$(ruby -rsecurerandom -e 'puts SecureRandom.hex(64)')"
+  export SECRET_KEY_BASE
+fi
+
+if [ -n "${DATABASE_URL:-}" ]; then
+  echo "==> waiting for the database"
+  until pg_isready -d "${DATABASE_URL}" -q; do
+    sleep 1
+  done
+fi
+
+# db:prepare creates and loads the schema on an empty database and migrates an
+# existing one. The seeds are idempotent, so running them every boot is safe
+# and means the API is never empty on first request.
+if [ "${SKIP_DB_PREPARE:-}" != "1" ]; then
+  echo "==> preparing the database"
+  bundle exec rails db:prepare
+  bundle exec rails db:seed
+fi
+
+rm -f tmp/pids/server.pid
+
+exec "$@"
